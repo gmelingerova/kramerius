@@ -404,7 +404,7 @@ public class Import {
                                 String resource = collection.getAttributeNS(FedoraNamespaces.RDF_NAMESPACE_URI, "resource");
                                 PIDParser parser = new PIDParser(resource);
                                 parser.disseminationURI();
-                                String objectId = parser.getObjectId();
+                                String objectId = parser.getObjectPid();
                                 List list = KConfiguration.getInstance().getConfiguration().getList("cdk.streams.update.collections");
                                 for (Object col :  list) {
                                     if (objectId.equals(col.toString())) {
@@ -480,7 +480,7 @@ public class Import {
         log.info("Ingested:" + pid + " in " + (System.currentTimeMillis() - start) + "ms, count:" + counter);
     }
 
-    private static Element streamElement(Document document, String streamName) {
+    private static Element streamElement(Document document, final String streamName) {
         return XMLUtils.findElement(document.getDocumentElement(), new XMLUtils.ElementsFilter() {
             @Override
             public boolean acceptElement(Element element) {
