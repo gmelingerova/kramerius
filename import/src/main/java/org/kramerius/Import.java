@@ -390,7 +390,8 @@ public class Import {
                         Document document = XMLUtils.parseDocument(new ByteArrayInputStream(bytes), true);
                         Element relsExt = streamElement(document, FedoraUtils.RELS_EXT_STREAM);
                         if (relsExt != null) {
-                            Element collection = XMLUtils.findElement(relsExt, new XMLUtils.ElementsFilter() {
+
+                            List<Element> collections = XMLUtils.getElementsRecursive(relsExt, new XMLUtils.ElementsFilter() {
                                 @Override
                                 public boolean acceptElement(Element element) {
                                     String localName = element.getLocalName();
@@ -400,57 +401,67 @@ public class Import {
                                     return false;
                                 }
                             });
-                            if(collection != null) {
-                                String resource = collection.getAttributeNS(FedoraNamespaces.RDF_NAMESPACE_URI, "resource");
-                                PIDParser parser = new PIDParser(resource);
-                                parser.disseminationURI();
-                                String objectId = parser.getObjectPid();
-                                List list = KConfiguration.getInstance().getConfiguration().getList("cdk.streams.update.collections");
-                                for (Object col :  list) {
-                                    if (objectId.equals(col.toString())) {
 
 
-                                        // dc stream update
-                                        Element dcStream = streamElement(document, FedoraUtils.DC_STREAM);
-                                        Element dcXmlContent = XMLUtils.findElement(dcStream, new XMLUtils.ElementsFilter() {
-                                            @Override
-                                            public boolean acceptElement(Element element) {
-                                                return element.getLocalName().equals("xmlContent");
-                                            }
-                                        });
-                                        NodeList childNodesDc = dcXmlContent.getChildNodes();
-                                        for (int i=0,ll=childNodesDc.getLength();i<ll;i++) {
-                                            if (childNodesDc.item(i).getNodeType()== Node.ELEMENT_NODE) {
-                                                StringWriter writer = new StringWriter();
-                                                XMLUtils.print((Element)childNodesDc.item(i), writer);
-                                                log.info("updating DC stream ");
-                                                port.modifyDatastreamByValue(pid, FedoraUtils.DC_STREAM, null, null, null, null, writer.toString().getBytes("UTF-8"), null, null, "Datastream updated by import process", false);
-                                            }
-                                        }
+                            List<String>  collectionsIdent = new ArrayList<String>();
+                            for (Element colelement :  collections) {
+                                String resource = colelement.getAttributeNS(FedoraNamespaces.RDF_NAMESPACE_URI, "resource");
+                                if (resource.trim().startsWith(PIDParser.INFO_FEDORA_PREFIX)) {
+                                    collectionsIdent.add(resource.trim().substring(PIDParser.INFO_FEDORA_PREFIX.length()));
+                                } else {
+                                    log.warning("ommiting '"+resource +"'");
+                                }
 
+                            }
 
+                            boolean containsFlag = false;
+                            List<String> configList = KConfiguration.getInstance().getConfiguration().getList("cdk.streams.update.collections");
+                            for (String conf :  configList) {
+                                if (!containsFlag) {
+                                    containsFlag = collectionsIdent.contains(conf);
+                                    break;
+                                }
+                            }
 
-                                        // biblo mods update
-                                        Element bibloModStream = streamElement(document, FedoraUtils.BIBLIO_MODS_STREAM);
-                                        Element modsXmlContent = XMLUtils.findElement(bibloModStream, new XMLUtils.ElementsFilter() {
-                                            @Override
-                                            public boolean acceptElement(Element element) {
-                                                return element.getLocalName().equals("xmlContent");
-                                            }
-                                        });
-                                        NodeList childNodesMods = modsXmlContent.getChildNodes();
-                                        for (int i=0,ll=childNodesMods.getLength();i<ll;i++) {
-                                            if (childNodesDc.item(i).getNodeType()== Node.ELEMENT_NODE) {
-                                                StringWriter writer = new StringWriter();
-                                                XMLUtils.print((Element)childNodesMods.item(i), writer);
-                                                log.info("updating BIBLIO_MODS stream ");
-                                                port.modifyDatastreamByValue(pid, FedoraUtils.BIBLIO_MODS_STREAM, null, null, null, null, writer.toString().getBytes("UTF-8"), null, null, "Datastream updated by import process", false);
-                                            }
-                                        }
+                            if(containsFlag) {
 
-
+                                // dc stream update
+                                Element dcStream = streamElement(document, FedoraUtils.DC_STREAM);
+                                Element dcXmlContent = XMLUtils.findElement(dcStream, new XMLUtils.ElementsFilter() {
+                                    @Override
+                                    public boolean acceptElement(Element element) {
+                                        return element.getLocalName().equals("xmlContent");
+                                    }
+                                });
+                                NodeList childNodesDc = dcXmlContent.getChildNodes();
+                                for (int i=0,ll=childNodesDc.getLength();i<ll;i++) {
+                                    if (childNodesDc.item(i).getNodeType()== Node.ELEMENT_NODE) {
+                                        StringWriter writer = new StringWriter();
+                                        XMLUtils.print((Element)childNodesDc.item(i), writer);
+                                        log.info("updating DC stream ");
+                                        port.modifyDatastreamByValue(pid, FedoraUtils.DC_STREAM, null, null, null, null, writer.toString().getBytes("UTF-8"), null, null, "Datastream updated by import process", false);
                                     }
                                 }
+
+
+                                // biblo mods update
+                                Element bibloModStream = streamElement(document, FedoraUtils.BIBLIO_MODS_STREAM);
+                                Element modsXmlContent = XMLUtils.findElement(bibloModStream, new XMLUtils.ElementsFilter() {
+                                    @Override
+                                    public boolean acceptElement(Element element) {
+                                        return element.getLocalName().equals("xmlContent");
+                                    }
+                                });
+                                NodeList childNodesMods = modsXmlContent.getChildNodes();
+                                for (int i=0,ll=childNodesMods.getLength();i<ll;i++) {
+                                    if (childNodesDc.item(i).getNodeType()== Node.ELEMENT_NODE) {
+                                        StringWriter writer = new StringWriter();
+                                        XMLUtils.print((Element)childNodesMods.item(i), writer);
+                                        log.info("updating BIBLIO_MODS stream ");
+                                        port.modifyDatastreamByValue(pid, FedoraUtils.BIBLIO_MODS_STREAM, null, null, null, null, writer.toString().getBytes("UTF-8"), null, null, "Datastream updated by import process", false);
+                                    }
+                                }
+
 
                             }else throw  new RuntimeException("cannot find collection element");
 
@@ -458,13 +469,11 @@ public class Import {
 
 
                     } catch (ParserConfigurationException e) {
-                        throw new RuntimeException(sfex);
+                        throw new RuntimeException(e);
                     } catch (SAXException e) {
-                        throw new RuntimeException(sfex);
-                    } catch (LexerException e) {
-                        throw new RuntimeException(sfex);
+                        throw new RuntimeException(e);
                     } catch (TransformerException e) {
-                        throw new RuntimeException(sfex);
+                        throw new RuntimeException(e);
                     }
 
                 }
