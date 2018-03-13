@@ -409,7 +409,12 @@ public class Import {
                                 if (resource.trim().startsWith(PIDParser.INFO_FEDORA_PREFIX)) {
                                     collectionsIdent.add(resource.trim().substring(PIDParser.INFO_FEDORA_PREFIX.length()));
                                 } else {
-                                    log.warning("ommiting '"+resource +"'");
+                                    resource = colelement.getAttribute("resource");
+                                    if (resource.trim().startsWith(PIDParser.INFO_FEDORA_PREFIX)) {
+                                        collectionsIdent.add(resource.trim().substring(PIDParser.INFO_FEDORA_PREFIX.length()));
+                                    } else {
+                                        log.warning("ommiting '"+resource +"'");
+                                    }
                                 }
 
                             }
