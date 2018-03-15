@@ -468,7 +468,7 @@ public class Import {
                                 }
 
 
-                            }else throw  new RuntimeException("cannot find collection element");
+                            }
 
                         } else throw  new RuntimeException("cannot find rels-ext element");
 
