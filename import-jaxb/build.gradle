@@ -1,21 +1,34 @@
-apply plugin: 'jaxb'
+apply plugin: 'com.github.jacobono.jaxb'
 
 description "Import JAXB stubs"
 
-jaxbconf {
-	packageName 'com.qbizm.kramerius.imp.jaxb'
+//jaxbconf {
+//	packageName 'com.qbizm.kramerius.imp.jaxb'
+//}
+
+jaxb {
+    xsdDir = "resources"
+    xjc {
+        generatePackage "com.qbizm.kramerius.imp.jaxb"
+        destinationDir = "generated-src"
+    }
+
 }
 
-configurations {
-    xjc
-}
+//configurations {
+//   xjc
+//}
 
 dependencies {
-	xjc 'com.sun.xml.bind:jaxb-xjc:2.2.7'
+    jaxb "com.sun.xml.bind:jaxb-core:2.2.11"
+    jaxb "com.sun.xml.bind:jaxb-impl:2.2.11"
+    jaxb "com.sun.xml.bind:jaxb-xjc:2.2.11"
+    jaxb "javax.xml.bind:jaxb-api:2.2.11"
+    jaxb "javax.activation:activation:1.1"
 }
 
-clean {
-    delete "generated-src"
-}
+//clean {
+//    delete "generated-src"
+//}
 
 
